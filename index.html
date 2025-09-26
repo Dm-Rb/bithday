@@ -16,26 +16,28 @@
       margin:0; background:linear-gradient(180deg,#071027 0%, #081424 60%);
       color:#e6eef8; display:flex; align-items:center; justify-content:center; padding:16px;
     }
-
     .card{width:100%; max-width:760px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:16px; box-shadow: 0 8px 30px rgba(2,6,23,0.7); padding:20px; backdrop-filter: blur(6px);}
-    .center{display:flex; align-items:center; justify-content:center; min-height:280px;}
+    .center{display:flex; align-items:center; justify-content:center; min-height:280px; flex-direction:column;}
     .big-play{--size:200px; width:var(--size); height:var(--size); border-radius:999px; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg, rgba(96,165,250,0.15), rgba(96,165,250,0.06)); border:1px solid rgba(96,165,250,0.25); color:var(--accent); font-weight:700; font-size:24px; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; box-shadow: 0 10px 30px rgba(99,102,241,0.06), inset 0 -6px 18px rgba(96,165,250,0.02);}
     .big-play:active{transform:scale(.98)}
-    .game{display:none; gap:14px; align-items:center; justify-content:center; flex-direction:column;}
+    .game{display:none; gap:14px; align-items:center; justify-content:center; flex-direction:column; width:100%}
     .board{width: 100%; max-width: 480px; aspect-ratio:1/1; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:var(--glass); padding:6px; border-radius:12px;}
     .cell{background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:48px; font-weight:800; user-select:none; transition:transform .12s ease, background .12s ease; color:#e6eef8; min-height:0;}
-    .cell:hover{transform:translateY(-2px)} .cell.disabled{cursor:not-allowed; opacity:.75}
-    .info{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; width:100%;} .status{font-size:16px; color:var(--muted)} .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;} .btn{background:transparent; border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px; cursor:pointer; color:var(--muted); font-size:14px;} .btn.primary{background:var(--accent); color:#04263b; border:none; font-weight:700}
-    footer{margin-top:12px; text-align:center; color:var(--muted); font-size:12px}
+    .cell:hover{transform:translateY(-2px)}
+    .cell.disabled{cursor:not-allowed; opacity:.75}
+    .info{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; width:100%;}
+    .status{font-size:28px; font-weight:700; color:var(--muted); margin-bottom:12px; text-align:center;}
+    .controls{display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;}
+    .btn{background:transparent; border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px; cursor:pointer; color:var(--muted); font-size:14px;}
+    .btn.primary{background:var(--accent); color:#04263b; border:none; font-weight:700}
 
     @media (max-width:520px){
       .big-play{--size:140px; font-size:18px}
       .cell{font-size:32px}
       .card{padding:14px}
-      .status{font-size:14px}
+      .status{font-size:22px}
     }
 
-    /* Стили поп-апа */
     .popup-overlay {position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px;}
     .popup {background:#1e293b; color:#fff; padding:16px 20px; border-radius:12px; max-width:90%; text-align:center; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.4); word-wrap:break-word;}
     .popup button.close {position:absolute; top:6px; right:8px; background:none; border:none; color:#fff; font-size:20px; cursor:pointer;}
@@ -49,7 +51,6 @@
     </div>
   </div>
 
-  <!-- Поп-ап при победе -->
   <div id="winPopupOverlay" class="popup-overlay" style="display:none">
     <div class="popup">
       <button class="close" id="winPopupClose">×</button>
@@ -58,25 +59,21 @@
   </div>
 
   <main class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-      <h1 style="margin:0;font-size:18px">Крестики‑нолики</h1>
-      <div style="color:var(--muted);font-size:12px">Вы — <strong>X</strong>, Компьютер — <strong>O</strong></div>
-    </div>
-
     <div class="center">
+      <div id="startInfo" style="text-align:center; margin-bottom:14px">
+        <div style="font-weight:700; font-size:24px;">Крестики-нолики</div>
+        <div style="margin-top:4px; color:var(--muted);">Вы: X · Компьютер: O</div>
+      </div>
+      <div class="status" id="status" style="display:none">Ход: вы</div>
       <button id="playBtn" class="big-play" aria-label="Играть">Играть</button>
 
       <section id="game" class="game" aria-hidden="true">
         <div class="info" style="width:100%">
-          <div class="status" id="status">Ход: вы</div>
           <div class="controls">
             <button id="newBtn" class="btn">Новая игра</button>
-            <button id="resetBtn" class="btn">Сбросить счёт</button>
           </div>
         </div>
-
         <div id="board" class="board" role="grid" aria-label="Поле крестики-нолики"></div>
-
         <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
           <div style="font-size:13px;color:var(--muted)">Счёт:</div>
           <div id="score" style="font-weight:700;font-size:13px">Вы: 0 · Компьютер: 0 · Ничья: 0</div>
@@ -86,20 +83,19 @@
   </main>
 
   <script>
-    // JS остаётся без изменений
     const playBtn = document.getElementById('playBtn');
     const gameEl = document.getElementById('game');
     const boardEl = document.getElementById('board');
     const statusEl = document.getElementById('status');
+    const startInfoEl = document.getElementById('startInfo');
     const newBtn = document.getElementById('newBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const scoreEl = document.getElementById('score');
 
     let board = Array(9).fill(null);
     let myTurn = true;
     let gameOver = false;
     let score = { me:0, comp:0, tie:0 };
-    let tieCount = 0; // счётчик ничьих
+    let tieCount = 0;
 
     function renderBoard(){
       boardEl.innerHTML = '';
@@ -168,7 +164,6 @@
         statusEl.textContent = 'Ничья.'; score.tie++; tieCount++;
       }
       updateScore();
-      if(result === 'X' || result === 'O') highlightWinningLine(board, result);
     }
 
     function updateScore(){
@@ -179,21 +174,6 @@
       const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
       for(const [a,b1,c] of wins){ if(b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a]; }
       return null;
-    }
-
-    function highlightWinningLine(b, player){
-      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for(const line of wins){
-        const [a,b1,c] = line;
-        if(b[a] === player && b[b1] === player && b[c] === player){
-          const cells = boardEl.querySelectorAll('.cell');
-          line.forEach(i => {
-            cells[i].style.boxShadow = '0 6px 24px rgba(52,211,153,0.08)';
-            cells[i].style.background = 'linear-gradient(180deg, rgba(52,211,153,0.06), rgba(52,211,153,0.02))';
-          });
-          break;
-        }
-      }
     }
 
     function findBestMove(origBoard){
@@ -222,19 +202,32 @@
       return minimax(copy, 0, true);
     }
 
-    playBtn.addEventListener('click', ()=>{ playBtn.style.display = 'none'; gameEl.style.display = 'flex'; gameEl.setAttribute('aria-hidden','false'); renderBoard(); myTurn = true; gameOver=false; board = Array(9).fill(null); updateStatus(); });
-    newBtn.addEventListener('click', ()=>{ board = Array(9).fill(null); gameOver=false; myTurn=true; updateStatus(); renderBoard(); });
-    resetBtn.addEventListener('click', ()=>{ score = {me:0,comp:0,tie:0}; updateScore(); board = Array(9).fill(null); gameOver=false; myTurn=true; tieCount=0; updateStatus(); renderBoard(); });
+    playBtn.addEventListener('click', ()=>{
+      startInfoEl.style.display = 'none';
+      playBtn.style.display = 'none';
+      gameEl.style.display = 'flex';
+      statusEl.style.display = 'block';
+      gameEl.setAttribute('aria-hidden','false');
+      board = Array(9).fill(null);
+      gameOver = false;
+      myTurn = true;
+      updateStatus();
+      renderBoard();
+    });
 
-    const popupOverlay = document.getElementById('popupOverlay');
-    const popupClose = document.getElementById('popupClose');
-    popupClose.addEventListener('click', ()=>{ popupOverlay.style.display = 'none'; });
+    newBtn.addEventListener('click', ()=>{
+      board = Array(9).fill(null);
+      gameOver = false;
+      myTurn = true;
+      updateStatus();
+      renderBoard();
+    });
 
-    const winPopupOverlay = document.getElementById('winPopupOverlay');
-    const winPopupClose = document.getElementById('winPopupClose');
-    winPopupClose.addEventListener('click', ()=>{ winPopupOverlay.style.display = 'none'; });
+    document.getElementById('popupClose').addEventListener('click', ()=>{ document.getElementById('popupOverlay').style.display='none'; });
+    document.getElementById('winPopupClose').addEventListener('click', ()=>{ document.getElementById('winPopupOverlay').style.display='none'; });
 
-    renderBoard(); updateScore();
+    renderBoard();
+    updateScore();
   </script>
 </body>
 </html>
