@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Крестики-нолики — Играть</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#60a5fa; --muted:#94a3b8; --win:#34d399;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,#071027 0%, #081424 60%);
+      color:#e6eef8; display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+
+    .card{width:100%; max-width:760px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:16px; box-shadow: 0 8px 30px rgba(2,6,23,0.7); padding:28px; backdrop-filter: blur(6px);}
+    .center{display:flex; align-items:center; justify-content:center; min-height:320px;}
+    .big-play{--size:220px; width:var(--size); height:var(--size); border-radius:999px; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg, rgba(96,165,250,0.15), rgba(96,165,250,0.06)); border:1px solid rgba(96,165,250,0.25); color:var(--accent); font-weight:700; font-size:28px; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; box-shadow: 0 10px 30px rgba(99,102,241,0.06), inset 0 -6px 18px rgba(96,165,250,0.02);}
+    .big-play:active{transform:scale(.98)}
+    .game{display:none; gap:18px; align-items:center; justify-content:center; flex-direction:column;}
+    .board{width: min(520px, 90vw); aspect-ratio:1/1; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:var(--glass); padding:8px; border-radius:12px;}
+    .cell{background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:56px; font-weight:800; user-select:none; transition:transform .12s ease, background .12s ease; color:#e6eef8;}
+    .cell:hover{transform:translateY(-4px)} .cell.disabled{cursor:not-allowed; opacity:.75}
+    .info{display:flex; gap:12px; align-items:center; justify-content:space-between; width:100%;} .status{font-size:18px; color:var(--muted)} .controls{display:flex; gap:8px; align-items:center} .btn{background:transparent; border:1px solid rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; cursor:pointer; color:var(--muted)} .btn.primary{background:var(--accent); color:#04263b; border:none; font-weight:700}
+    footer{margin-top:12px; text-align:center; color:var(--muted); font-size:13px}
+    @media (max-width:520px){ .big-play{--size:160px; font-size:20px} .cell{font-size:40px} }
+
+    /* Стили поп-апа */
+    .popup-overlay {position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;}
+    .popup {background:#1e293b; color:#fff; padding:20px 28px; border-radius:12px; max-width:400px; text-align:center; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.4);}
+    .popup button.close {position:absolute; top:8px; right:10px; background:none; border:none; color:#fff; font-size:20px; cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div id="popupOverlay" class="popup-overlay" style="display:flex">
+    <div class="popup">
+      <button class="close" id="popupClose">×</button>
+      <p>Победи меня если сможешь и получишь следующую подсказку</p>
+    </div>
+  </div>
+
+  <!-- Поп-ап при победе -->
+  <div id="winPopupOverlay" class="popup-overlay" style="display:none">
+    <div class="popup">
+      <button class="close" id="winPopupClose">×</button>
+      <p>Победа за тобой. Следующая подсказка находится тут <a href="https://licalhost" target="_blank">https://licalhost</a></p>
+    </div>
+  </div>
+
+  <main class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h1 style="margin:0;font-size:20px">Крестики‑нолики</h1>
+      <div style="color:var(--muted);font-size:13px">Вы — <strong>X</strong>, Компьютер — <strong>O</strong></div>
+    </div>
+
+    <div class="center">
+      <button id="playBtn" class="big-play" aria-label="Играть">Играть</button>
+
+      <section id="game" class="game" aria-hidden="true">
+        <div class="info" style="width:100%">
+          <div class="status" id="status">Ход: вы</div>
+          <div class="controls">
+            <button id="newBtn" class="btn">Новая игра</button>
+            <button id="resetBtn" class="btn">Сбросить счёт</button>
+          </div>
+        </div>
+
+        <div id="board" class="board" role="grid" aria-label="Поле крестики-нолики"></div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
+          <div style="font-size:14px;color:var(--muted)">Счёт:</div>
+          <div id="score" style="font-weight:700">Вы: 0 · Компьютер: 0 · Ничья: 0</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const gameEl = document.getElementById('game');
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const newBtn = document.getElementById('newBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const scoreEl = document.getElementById('score');
+
+    let board = Array(9).fill(null);
+    let myTurn = true;
+    let gameOver = false;
+    let score = { me:0, comp:0, tie:0 };
+    let tieCount = 0; // счётчик ничьих
+
+    function renderBoard(){
+      boardEl.innerHTML = '';
+      board.forEach((v,i) => {
+        const c = document.createElement('div');
+        c.className = 'cell' + (v? ' disabled':'');
+        c.setAttribute('role','button');
+        c.setAttribute('aria-label', v? (`${v} на позиции ${i+1}`):`Пустая клетка ${i+1}`);
+        c.dataset.index = i;
+        c.innerText = v? v : '';
+        if(!v && !gameOver){
+          c.addEventListener('click', onCellClick);
+          c.tabIndex = 0;
+          c.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') onCellClick(e); });
+        }
+        boardEl.appendChild(c);
+      });
+    }
+
+    function onCellClick(e){
+      const idx = Number(e.currentTarget.dataset.index);
+      if(board[idx] || gameOver || !myTurn) return;
+      makeMove(idx, 'X');
+      myTurn = false;
+      updateStatus();
+      setTimeout(()=>{ if(!gameOver) compTurn(); }, 220);
+    }
+
+    function makeMove(idx, player){
+      if(board[idx] || gameOver) return false;
+      board[idx] = player;
+      renderBoard();
+      const winner = checkWin(board);
+      if(winner){ endGame(winner); }
+      else if(board.every(Boolean)){ endGame('tie'); }
+      return true;
+    }
+
+    function updateStatus(){
+      if(gameOver) return;
+      statusEl.textContent = myTurn ? 'Ход: вы' : 'Ход: компьютер';
+    }
+
+    function compTurn(){
+      let best;
+      // Если количество ничьих кратно 5 — допустим случайную ошибку
+      if(tieCount > 0 && tieCount % 5 === 0){
+        const free = board.map((v,i)=> v? null:i).filter(v=>v!==null);
+        const randomIdx = free[Math.floor(Math.random()*free.length)];
+        best = {idx: randomIdx};
+      } else {
+        best = findBestMove(board);
+      }
+      makeMove(best.idx, 'O');
+      myTurn = true;
+      updateStatus();
+    }
+
+    function endGame(result){
+      gameOver = true;
+      if(result === 'X'){
+        statusEl.textContent = 'Вы победили!'; score.me++;
+        document.getElementById('winPopupOverlay').style.display = 'flex';
+      } else if(result === 'O'){
+        statusEl.textContent = 'Компьютер победил.'; score.comp++;
+      } else {
+        statusEl.textContent = 'Ничья.'; score.tie++; tieCount++;
+      }
+      updateScore();
+      if(result === 'X' || result === 'O') highlightWinningLine(board, result);
+    }
+
+    function updateScore(){
+      scoreEl.textContent = `Вы: ${score.me} · Компьютер: ${score.comp} · Ничья: ${score.tie}`;
+    }
+
+    function checkWin(b){
+      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for(const [a,b1,c] of wins){ if(b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a]; }
+      return null;
+    }
+
+    function highlightWinningLine(b, player){
+      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for(const line of wins){
+        const [a,b1,c] = line;
+        if(b[a] === player && b[b1] === player && b[c] === player){
+          const cells = boardEl.querySelectorAll('.cell');
+          line.forEach(i => {
+            cells[i].style.boxShadow = '0 6px 24px rgba(52,211,153,0.08)';
+            cells[i].style.background = 'linear-gradient(180deg, rgba(52,211,153,0.06), rgba(52,211,153,0.02))';
+          });
+          break;
+        }
+      }
+    }
+
+    function findBestMove(origBoard){
+      const huPlayer = 'X';
+      const aiPlayer = 'O';
+      function emptyIndices(b){ return b.map((v,i)=> v? null : i).filter(v=>v!==null); }
+      function evaluate(b){ const winner = checkWin(b); if(winner === aiPlayer) return 10; if(winner === huPlayer) return -10; return 0; }
+      function minimax(b, depth, isMax){
+        const score = evaluate(b);
+        if(score === 10) return {score: score - depth};
+        if(score === -10) return {score: score + depth};
+        if(b.every(Boolean)) return {score: 0};
+        const avail = emptyIndices(b);
+        if(isMax){
+          let best = {score: -Infinity, idx: null};
+          for(const idx of avail){ b[idx] = aiPlayer; const res = minimax(b, depth+1, false); b[idx] = null; if(res.score > best.score){ best = {score: res.score, idx}; } }
+          return best;
+        } else {
+          let best = {score: Infinity, idx: null};
+          for(const idx of avail){ b[idx] = huPlayer; const res = minimax(b, depth+1, true); b[idx] = null; if(res.score < best.score){ best = {score: res.score, idx}; } }
+          return best;
+        }
+      }
+      if(origBoard.every(v=>!v)) return {idx:4};
+      const copy = origBoard.slice();
+      return minimax(copy, 0, true);
+    }
+
+    playBtn.addEventListener('click', ()=>{ playBtn.style.display = 'none'; gameEl.style.display = 'flex'; gameEl.setAttribute('aria-hidden','false'); renderBoard(); myTurn = true; gameOver=false; board = Array(9).fill(null); updateStatus(); });
+    newBtn.addEventListener('click', ()=>{ board = Array(9).fill(null); gameOver=false; myTurn=true; updateStatus(); renderBoard(); });
+    resetBtn.addEventListener('click', ()=>{ score = {me:0,comp:0,tie:0}; updateScore(); board = Array(9).fill(null); gameOver=false; myTurn=true; tieCount=0; updateStatus(); renderBoard(); });
+
+    // Поп-ап закрытие
+    const popupOverlay = document.getElementById('popupOverlay');
+    const popupClose = document.getElementById('popupClose');
+    popupClose.addEventListener('click', ()=>{
+      popupOverlay.style.display = 'none';
+    });
+
+    const winPopupOverlay = document.getElementById('winPopupOverlay');
+    const winPopupClose = document.getElementById('winPopupClose');
+    winPopupClose.addEventListener('click', ()=>{
+      winPopupOverlay.style.display = 'none';
+    });
+
+    renderBoard(); updateScore();
+  </script>
+</body>
+</html>
